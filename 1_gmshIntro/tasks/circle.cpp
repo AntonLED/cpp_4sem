@@ -1,9 +1,11 @@
 #include <gmsh.h>
 #include <set>
 #include <iostream>
+#include "../utils/utils.cpp"
 
-int main(int argc, char **argv)
-{
+
+
+int main(int argc, char **argv) {
     gmsh::initialize();
     gmsh::model::add("test1");
     double lc = 1e-1;
@@ -18,19 +20,21 @@ int main(int argc, char **argv)
         10, 0, 0, lc, 3
     );
 
-    auto c1 = gmsh::model::geo::addCircleArc(
-        p1, p2, p3
-    );
-    auto c2 = gmsh::model::geo::addCircleArc(
-        p3, p2, p1
-    );
+    // auto c1 = gmsh::model::geo::addCircleArc(
+    //     p1, p2, p3
+    // );
+    // auto c2 = gmsh::model::geo::addCircleArc(
+    //     p3, p2, p1
+    // );
 
-    auto cl1 = gmsh::model::geo::addCurveLoop(
-        {c1, c2}, 1
-    );
-    auto serf1 = gmsh::model::geo::addPlaneSurface(
-        {cl1}, 1
-    );
+    // auto cl1 = gmsh::model::geo::addCurveLoop(
+    //     {c1, c2}, 1
+    // );
+    // auto serf1 = gmsh::model::geo::addPlaneSurface(
+    //     {cl1}, 1
+    // );
+
+    auto circ = utils::_make_circle_surface(p1, p2, p3);
 
 
     gmsh::model::geo::synchronize();
