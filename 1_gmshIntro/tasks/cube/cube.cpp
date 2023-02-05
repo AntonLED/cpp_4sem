@@ -2,7 +2,8 @@
 #include <cmath>
 #include <gmsh.h> 
 #include <vector>
-#include "../utils/utils.cpp"
+#include "../../utils/utils.cpp"
+
 
 
 

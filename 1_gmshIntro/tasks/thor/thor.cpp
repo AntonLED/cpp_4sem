@@ -1,7 +1,7 @@
 #include <gmsh.h>
 #include <set>
 #include <iostream>
-#include "../utils/utils.cpp"
+#include "../../utils/utils.cpp"
 
 
 
@@ -42,12 +42,16 @@ int main() {
         -5 - 10, 0, 0, lc
     );
     
-    int circ1 = utils::_make_circle_surface(p1, p2, p3, p4, p5);
-    int circ2 = utils::_make_circle_surface(p6, p7, p8, p9, p10);
+    std::vector<int> circ1 = utils::_make_circle_curve(
+        p1, p2, p3, p4, p5
+    );
+    std::vector<int> circ2 = utils::_make_circle_curve(
+        p6, p7, p8, p9, p10
+    );
 
     std::vector<std::pair<int, int>> ov1; 
     gmsh::model::geo::revolve(
-        {{2, circ1}},
+        {{1, circ1[0]}, {1, circ1[1]}, {1, circ1[2]}, {1, circ1[3]}},
         0, 0, 0,
         0, 1, 0, 
         M_PI / 2,
@@ -55,7 +59,7 @@ int main() {
     );
     std::vector<std::pair<int, int>> ov2; 
     gmsh::model::geo::revolve(
-        {{2, circ1}},
+        {{1, circ1[0]}, {1, circ1[1]}, {1, circ1[2]}, {1, circ1[3]}},
         0, 0, 0,
         0, 1, 0, 
         -M_PI / 2,
@@ -63,7 +67,7 @@ int main() {
     );
     std::vector<std::pair<int, int>> ov3; 
     gmsh::model::geo::revolve(
-        {{2, circ2}},
+        {{1, circ2[0]}, {1, circ2[1]}, {1, circ2[2]}, {1, circ2[3]}},
         0, 0, 0,
         0, 1, 0, 
         M_PI / 2,
@@ -71,16 +75,37 @@ int main() {
     );
     std::vector<std::pair<int, int>> ov4; 
     gmsh::model::geo::revolve(
-        {{2, circ2}},
+        {{1, circ2[0]}, {1, circ2[1]}, {1, circ2[2]}, {1, circ2[3]}},
         0, 0, 0,
         0, 1, 0, 
         -M_PI / 2,
         ov4
     );
 
-    gmsh::model::geo::addSurfaceLoop(
+    std::vector<int> tags; 
+    for (int i = 0; i < ov1.size(); i++)
+        if (ov1[i].first == 2) 
+            tags.push_back(ov1[i].second); 
+
+    for (int i = 0; i < ov2.size(); i++) 
+        if (ov2[i].first == 2) 
+            tags.push_back(ov2[i].second); 
+
+    for (int i = 0; i < ov3.size(); i++) 
+        if (ov3[i].first == 2) 
+            tags.push_back(ov3[i].second); 
+
+    for (int i = 0; i < ov4.size(); i++) 
+        if (ov4[i].first == 2) 
+            tags.push_back(ov4[i].second); 
+
+    gmsh::model::geo::addVolume(
         {
-            ov1[0].second,  ov2[0].second,  ov3[0].second,  ov4[0].second,
+            gmsh::model::geo::addSurfaceLoop(
+                {
+                    tags
+                }
+            )
         }
     );
 
