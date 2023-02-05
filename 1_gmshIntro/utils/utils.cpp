@@ -15,17 +15,43 @@ namespace utils {
             );
     }
 
-    int _make_circle_surface(int start_point, int center_point, int end_point) { 
+    int _make_circle_curve(int left_point, int bottom_point, int right_point, int top_point, int center_point) {
+        return
+            gmsh::model::geo::addCurveLoop(
+                {
+                    gmsh::model::geo::addCircleArc(
+                        left_point, center_point, bottom_point
+                    ), 
+                    gmsh::model::geo::addCircleArc(
+                        bottom_point, center_point, right_point
+                    ),
+                    gmsh::model::geo::addCircleArc(
+                        right_point, center_point, top_point
+                    ),
+                    gmsh::model::geo::addCircleArc(
+                        top_point, center_point, left_point
+                    )
+                }
+            );
+    }
+
+    int _make_circle_surface(int left_point, int bottom_point, int right_point, int top_point, int center_point) { 
         return 
             gmsh::model::geo::addPlaneSurface(
                 {
                     gmsh::model::geo::addCurveLoop(
                         {
                             gmsh::model::geo::addCircleArc(
-                                start_point, center_point, end_point
+                                left_point, center_point, bottom_point
                             ), 
                             gmsh::model::geo::addCircleArc(
-                                end_point, center_point, start_point
+                                bottom_point, center_point, right_point
+                            ),
+                            gmsh::model::geo::addCircleArc(
+                                right_point, center_point, top_point
+                            ),
+                            gmsh::model::geo::addCircleArc(
+                                top_point, center_point, left_point
                             )
                         }
                     )
