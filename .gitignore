@@ -5,3 +5,8 @@ expl4.cpp
 *.msh
 own.cpp
 .vscode
+vtu_frames/
+CMakeFiles/
+*.cmake
+CMakeCache.txt
+Makefile
