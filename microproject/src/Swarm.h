@@ -5,6 +5,13 @@
 #include <fstream>
 #include <vector>
 
+#include <vtkDoubleArray.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkTetra.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkSmartPointer.h>
 
 
 class PSO final {
@@ -28,8 +35,12 @@ private:
         const std::function<double(const std::vector<double>&)> &targFunc,
         std::ofstream &outfile
     ); 
+    void makeVTKsnapshot(
+        const std::function<double(const std::vector<double>&)> &targFunc,
+        unsigned snapshotNum, 
+        std::string folderName
+    ); 
 
-    std::string dumpBuffer = ""; 
     pso_params swarmParams; 
     pso_state swarmState;
 
@@ -45,15 +56,20 @@ public:
     ); 
     void run(
         const std::function<double(const std::vector<double>&)> &targFunc,
-        unsigned numOfIterations
+        unsigned numOfIterations,
+        std::ofstream& outfile
     ); 
     void run_and_visualize(
         const std::function<double(const std::vector<double>&)> &targFunc,
-        unsigned numOfIterations
+        unsigned numOfIterations,
+        std::ofstream& outfile
     );
     void visualize(
+        const std::function<double(const std::vector<double>&)> &targFunc,
         unsigned numOfIterations
     ); 
+
+
 }; 
 
 

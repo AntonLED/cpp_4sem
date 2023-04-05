@@ -1,10 +1,17 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.20)
 project(microproject)
 
-add_executable(test ./src/test.cpp)
+set(SOURCES
+        ./src/Swarm.cpp
+)
 
-# find_package(glm REQUIRED)
-find_package(glfw3 REQUIRED)
+set(HEADERS
+        ./src/Swarm.h
+)
 
-# link_libraries(glm)
-target_link_libraries(test glfw3)
+add_executable(microproject ${SOURCES} ${HEADERS})
+
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
+
+target_link_libraries(microproject ${VTK_LIBRARIES})

@@ -70,7 +70,7 @@ void PSO::init(
 
 void PSO::makeStep(
     const std::function<double(const std::vector<double>&)> &targFunc,
-    std::ofstream &outfile
+    std::ofstream& outfile
 ) {
     double r_g = uniformAB(0.0, 1.0);
 
@@ -105,49 +105,85 @@ void PSO::makeStep(
 
  void PSO::run(
     const std::function<double(const std::vector<double>&)> &targFunc,
-    unsigned numOfIterations
+    unsigned numOfIterations,
+    std::ofstream& outfile
 ) {
-    std::ofstream outfile("./_dump.txt");  
+    // std::ofstream outfile("./_dump.txt");  
     while (PSO::swarmState.curNumIterations < numOfIterations)
         PSO::makeStep(targFunc, outfile);
     outfile.close();
 
     PSO::swarmState.globalBestVal = targFunc(PSO::swarmState.globalBestPos); 
-    std::ofstream resfile("./_runresult.txt"); 
-    resfile << "bounds:\n"; 
+    // file.open(); 
+    outfile << "bounds:\n"; 
     for (int d = 0; d < PSO::swarmState.dimention; ++d)
-        resfile << "    " << PSO::swarmState.bounds[d].first << ' ' << PSO::swarmState.bounds[d].second << '\n'; 
-    resfile << "num of particles: " << std::to_string(PSO::swarmState.swarmSize) << '\n'; 
-    resfile << "num of iterations: " << std::to_string(PSO::swarmState.curNumIterations) << '\n'; 
-    resfile << "global minimum in ["; 
+        outfile << "    " << PSO::swarmState.bounds[d].first << ' ' << PSO::swarmState.bounds[d].second << '\n'; 
+    outfile << "num of particles: " << std::to_string(PSO::swarmState.swarmSize) << '\n'; 
+    outfile << "num of iterations: " << std::to_string(PSO::swarmState.curNumIterations) << '\n'; 
+    outfile << "global minimum in ["; 
     for (int d = 0; d < PSO::swarmState.dimention; ++d) 
-        resfile << PSO::swarmState.globalBestPos[d] << ' ';
-    resfile << "]\n";
-    resfile << "MIN = "; 
-    resfile << PSO::swarmState.globalBestVal << '\n'; 
-    resfile.close();
+        outfile << PSO::swarmState.globalBestPos[d] << ' ';
+    outfile << "]\n";
+    outfile << "MIN = "; 
+    outfile << PSO::swarmState.globalBestVal << '\n'; 
+    outfile.close();
  }
 
-void PSO::visualize(unsigned numOfIterations) {
-    system("rm out.gif");
-    system("mkdir ./img"); 
-    system("python3 visual.py");
-    std::string pngs; 
-    for (int i = 0; i < numOfIterations; ++i)
-        pngs += "img_"+ std::to_string(i) + ".png ";
-    std::string r = "cd ./img && convert " + pngs + "out.gif";
-    system(r.c_str());
-    system("mv ./img/out.gif ./");
-    system("rm -r ./img");
-    system("rm ./_dump.txt"); 
+void PSO::makeVTKsnapshot(
+    const std::function<double(const std::vector<double>&)> &targFunc,
+    unsigned snapshotNum,
+    std::string folderName
+) {
+    auto unstructuredGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+    auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
+
+    auto smth = vtkSmartPointer<vtkDoubleArray>::New();
+    smth->SetName("function");
+
+    std::vector tmpVec = {0.0, 0.0, 0.0};
+    tmpVec[0] = PSO::swarmState.bounds[0].first; 
+    tmpVec[1] = PSO::swarmState.bounds[1].first; 
+    double stepX = (PSO::swarmState.bounds[0].second - PSO::swarmState.bounds[0].first) / 1000; 
+    double stepY = (PSO::swarmState.bounds[1].second - PSO::swarmState.bounds[1].first) / 1000; 
+    for (unsigned i = 0; i < 1000; ++i) {
+        dumpPoints->InsertNextPoint(tmpVec[0], tmpVec[1], tmpVec[2]);
+        smth->InsertNextValue(targFunc(tmpVec)); 
+        tmpVec[0] += stepX; 
+        tmpVec[1] += stepY;
+    }
+
+    unstructuredGrid->SetPoints(dumpPoints); 
+    unstructuredGrid->GetPointData()->AddArray(smth);
+
+    // for (unsigned i = 0; i < PSO::swarmState.swarmSize; ++i) {
+    //     for (auto position : PSO::swarmState.swarmPoses) {
+    //         auto particlePoint = vtkSmartPointer<vtkPoints>::New();
+    //         unstructuredGrid->InsertNextCell(position[0], position[1], position[2]);
+    //     }
+    // }
+
+    std::string fileName = folderName + "task-step-" + std::to_string(snapshotNum) + ".vtu";
+    auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    writer->SetFileName(fileName.c_str());
+    writer->SetInputData(unstructuredGrid);
+    writer->Write();
+}
+
+void PSO::visualize(
+    const std::function<double(const std::vector<double>&)> &targFunc,
+    unsigned numOfIterations
+) {
+    for (unsigned snapshotNum = 0; snapshotNum < numOfIterations; ++snapshotNum) 
+        PSO::makeVTKsnapshot(targFunc, snapshotNum, "./vtu_frames/task-step-");
 }
 
 void PSO::run_and_visualize(
     const std::function<double(const std::vector<double>&)> &targFunc,
-    unsigned numOfIterations
+    unsigned numOfIterations,
+    std::ofstream& outfile
 ) {
-    PSO::run(targFunc, numOfIterations);
-    PSO::visualize(numOfIterations); 
+    PSO::run(targFunc, numOfIterations, outfile);
+    PSO::visualize(targFunc, numOfIterations); 
 }
 
 double mccormick(const std::vector<double> & x) {
@@ -178,8 +214,10 @@ double michalewicz(const std::vector<double> & x) {
     return -sum;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     const double PI = std::acos(-1.0); 
+
+    std::ofstream oufile("./run/test.txt"); 
 
     PSO pso; 
     pso.init(
@@ -187,7 +225,7 @@ int main() {
         {{-1.5, 4.0}, {-3.0, 4.0}},
         3000
     );
-    pso.run_and_visualize(mccormick, 50); 
+    pso.run_and_visualize(mccormick, 50, oufile); 
 // 
     // pso.init(
     //     0.6, 0.5, 0.6,
