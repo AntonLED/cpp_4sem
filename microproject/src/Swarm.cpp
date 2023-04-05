@@ -83,6 +83,7 @@ void PSO::makeStep(
                     PSO::swarmState.globalBestPos[d] = PSO::swarmState.swarmBestPoses[i][d];
         }
 
+
         for (int d = 0; d < PSO::swarmState.dimention; ++d) 
             outfile << PSO::swarmState.swarmPoses[i][d] << ' '; 
         outfile << '\n'; 
@@ -100,6 +101,8 @@ void PSO::makeStep(
             for (int d = 0; d < PSO::swarmState.dimention; ++d) 
                 PSO::swarmState.swarmPoses[i][d] = PSO::swarmState.bounds[d].first + (PSO::swarmState.bounds[d].second - PSO::swarmState.bounds[d].first) * uniformAB(0.0, 1.0); 
     }
+    PSO::makeVTKsnapshot(PSO::swarmState.curNumIterations, "./vtu_frames/");
+
     PSO::swarmState.curNumIterations++; 
 }
 
@@ -134,7 +137,7 @@ void PSO::makeVTKsnapshot(
     std::string folderName
 ) {
     auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
-    auto polygon = vtkSmartPointer<vtkPolyData>::New(); 
+    auto polygon = vtkSmartPointer<vtkPolyData>::New();    
 
     for (unsigned i = 0; i < PSO::swarmState.swarmSize; ++i) {
         dumpPoints->InsertNextPoint(
@@ -149,10 +152,10 @@ void PSO::makeVTKsnapshot(
     vertexGlyphFilter->SetInputData(polygon);
     vertexGlyphFilter->Update();
 
-    std::string fileName = "./vtu_frames/frame" + std::to_string(snapshotNum) + ".vtu";
+    std::string fileName = "./vtu_frames/frame-" + std::to_string(snapshotNum) + ".vtu";
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(fileName.c_str());
-    writer->SetInputData(polygon);
+    writer->SetInputData(vertexGlyphFilter->GetOutput());
     writer->Write();
 }
 
@@ -201,9 +204,6 @@ void PSO::visualize(
     writer->SetFileName(fileName.c_str());
     writer->SetInputData(meshedPolygon);
     writer->Write();
-
-    for (unsigned snapshotNum = 0; snapshotNum < numOfIterations; ++snapshotNum) 
-        PSO::makeVTKsnapshot(snapshotNum, "./vtu_frames/");
 }
 
 void PSO::run_and_visualize(
@@ -228,7 +228,7 @@ double test1(const std::vector<double> & x) {
 double test(const std::vector<double> & x) {
     auto a = x[0];
     auto b = x[1];
-    return (a+0)*(a+0) + (b-0)*(b-0);
+    return (a+2)*(a+2) + (b-2)*(b-2);
 }
 
 double michalewicz(const std::vector<double> & x) {
