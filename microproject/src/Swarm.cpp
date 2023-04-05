@@ -130,42 +130,29 @@ void PSO::makeStep(
  }
 
 void PSO::makeVTKsnapshot(
-    const std::function<double(const std::vector<double>&)> &targFunc,
     unsigned snapshotNum,
     std::string folderName
 ) {
-    auto unstructuredGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
     auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
+    auto polygon = vtkSmartPointer<vtkPolyData>::New(); 
 
-    auto smth = vtkSmartPointer<vtkDoubleArray>::New();
-    smth->SetName("function");
-
-    std::vector tmpVec = {0.0, 0.0, 0.0};
-    tmpVec[0] = PSO::swarmState.bounds[0].first; 
-    tmpVec[1] = PSO::swarmState.bounds[1].first; 
-    double stepX = (PSO::swarmState.bounds[0].second - PSO::swarmState.bounds[0].first) / 1000; 
-    double stepY = (PSO::swarmState.bounds[1].second - PSO::swarmState.bounds[1].first) / 1000; 
-    for (unsigned i = 0; i < 1000; ++i) {
-        dumpPoints->InsertNextPoint(tmpVec[0], tmpVec[1], tmpVec[2]);
-        smth->InsertNextValue(targFunc(tmpVec)); 
-        tmpVec[0] += stepX; 
-        tmpVec[1] += stepY;
+    for (unsigned i = 0; i < PSO::swarmState.swarmSize; ++i) {
+        dumpPoints->InsertNextPoint(
+            PSO::swarmState.swarmPoses[i][0],
+            PSO::swarmState.swarmPoses[i][1],
+            0.0
+        );
     }
 
-    unstructuredGrid->SetPoints(dumpPoints); 
-    unstructuredGrid->GetPointData()->AddArray(smth);
+    polygon->SetPoints(dumpPoints);
+    auto vertexGlyphFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+    vertexGlyphFilter->SetInputData(polygon);
+    vertexGlyphFilter->Update();
 
-    // for (unsigned i = 0; i < PSO::swarmState.swarmSize; ++i) {
-    //     for (auto position : PSO::swarmState.swarmPoses) {
-    //         auto particlePoint = vtkSmartPointer<vtkPoints>::New();
-    //         unstructuredGrid->InsertNextCell(position[0], position[1], position[2]);
-    //     }
-    // }
-
-    std::string fileName = folderName + "task-step-" + std::to_string(snapshotNum) + ".vtu";
-    auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    std::string fileName = "./vtu_frames/frame" + std::to_string(snapshotNum) + ".vtu";
+    auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(fileName.c_str());
-    writer->SetInputData(unstructuredGrid);
+    writer->SetInputData(polygon);
     writer->Write();
 }
 
@@ -173,8 +160,50 @@ void PSO::visualize(
     const std::function<double(const std::vector<double>&)> &targFunc,
     unsigned numOfIterations
 ) {
+    auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
+    auto polygon = vtkSmartPointer<vtkPolyData>::New(); 
+    auto smth = vtkSmartPointer<vtkDoubleArray>::New();
+    smth->SetName("function");
+
+    double stepX = (PSO::swarmState.bounds[0].second - PSO::swarmState.bounds[0].first) / 100; 
+    double stepY = (PSO::swarmState.bounds[1].second - PSO::swarmState.bounds[1].first) / 100; 
+    for (unsigned i = 0; i < 100; ++i) {
+        for (unsigned j = 0; j < 100; ++j) {
+            dumpPoints->InsertNextPoint(
+                PSO::swarmState.bounds[0].first + i * stepX, 
+                PSO::swarmState.bounds[1].first + j * stepY, 
+                0.0
+            );
+        }
+    }
+
+    polygon->SetPoints(dumpPoints);
+
+    auto mesher = vtkSmartPointer<vtkDelaunay2D>::New(); 
+    mesher->SetInputData(polygon); 
+    mesher->Update();
+    vtkPolyData* meshedPolygon = mesher->GetOutput();
+    
+    for (unsigned i = 0; i < meshedPolygon->GetNumberOfPoints(); ++i) {
+        double point[3]; 
+
+        meshedPolygon->GetPoint(i, point);        
+
+        smth->InsertNextValue(
+            targFunc({point[0], point[1], point[2]})
+        );
+    }    
+
+    meshedPolygon->GetPointData()->SetScalars(smth);
+
+    std::string fileName = "./background/backframe" + std::to_string(numOfIterations) + ".vtu";
+    auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    writer->SetFileName(fileName.c_str());
+    writer->SetInputData(meshedPolygon);
+    writer->Write();
+
     for (unsigned snapshotNum = 0; snapshotNum < numOfIterations; ++snapshotNum) 
-        PSO::makeVTKsnapshot(targFunc, snapshotNum, "./vtu_frames/task-step-");
+        PSO::makeVTKsnapshot(snapshotNum, "./vtu_frames/");
 }
 
 void PSO::run_and_visualize(
@@ -199,7 +228,7 @@ double test1(const std::vector<double> & x) {
 double test(const std::vector<double> & x) {
     auto a = x[0];
     auto b = x[1];
-    return (a+2)*(a+2) + (b-3)*(b-3);
+    return (a+0)*(a+0) + (b-0)*(b-0);
 }
 
 double michalewicz(const std::vector<double> & x) {
@@ -217,22 +246,22 @@ double michalewicz(const std::vector<double> & x) {
 int main(int argc, char* argv[]) {
     const double PI = std::acos(-1.0); 
 
-    std::ofstream oufile("./run/test.txt"); 
+    std::ofstream outfile("./run/test.txt"); 
 
     PSO pso; 
-    pso.init(
-        0.6, 0.1, 0.3,
-        {{-1.5, 4.0}, {-3.0, 4.0}},
-        3000
-    );
-    pso.run_and_visualize(mccormick, 50, oufile); 
-// 
     // pso.init(
-    //     0.6, 0.5, 0.6,
-    //     {{-4, 4}, {-4, 4}},
-    //     1000
+    //     0.6, 0.1, 0.3,
+    //     {{-1.5, 4.0}, {-3.0, 4.0}},
+    //     3000
     // );
-    // pso.run_and_visualize(test, 100); 
+    // pso.run_and_visualize(mccormick, 50, outfile); 
+// 
+    pso.init(
+        0.6, 0.5, 0.6,
+        {{-5, 5}, {-6, 6}},
+        1000
+    );
+    pso.run_and_visualize(test, 100, outfile); 
 
     // pso.init(
     //     0.3, 0.7, 0.5,

@@ -8,10 +8,22 @@
 #include <vtkDoubleArray.h>
 #include <vtkPoints.h>
 #include <vtkPointData.h>
-#include <vtkTetra.h>
-#include <vtkXMLUnstructuredGridWriter.h>
-#include <vtkUnstructuredGrid.h>
+#include <vtkXMLPolyDataWriter.h>
 #include <vtkSmartPointer.h>
+
+#include <vtkActor.h>
+#include <vtkCellArray.h>
+#include <vtkDelaunay2D.h>
+#include <vtkMath.h>
+#include <vtkMinimalStandardRandomSequence.h>
+#include <vtkNamedColors.h>
+#include <vtkNew.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkPolygon.h>
+#include <vtkProperty.h>
+#include <vtkVertexGlyphFilter.h>
+
 
 
 class PSO final {
@@ -36,7 +48,6 @@ private:
         std::ofstream &outfile
     ); 
     void makeVTKsnapshot(
-        const std::function<double(const std::vector<double>&)> &targFunc,
         unsigned snapshotNum, 
         std::string folderName
     ); 
