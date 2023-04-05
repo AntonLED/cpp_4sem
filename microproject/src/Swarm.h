@@ -1,9 +1,9 @@
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <random>
 #include <fstream>
 #include <vector>
+
 
 #include <vtkDoubleArray.h>
 #include <vtkPoints.h>
@@ -50,8 +50,8 @@ private:
     void makeVTKsnapshot(
         unsigned snapshotNum, 
         std::string folderName
-    ); 
-
+    );     
+    
     pso_params swarmParams; 
     pso_state swarmState;
 
@@ -79,8 +79,6 @@ public:
         const std::function<double(const std::vector<double>&)> &targFunc,
         unsigned numOfIterations
     ); 
-
-
 }; 
 
 

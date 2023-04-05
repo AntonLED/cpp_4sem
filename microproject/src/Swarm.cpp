@@ -83,11 +83,6 @@ void PSO::makeStep(
                     PSO::swarmState.globalBestPos[d] = PSO::swarmState.swarmBestPoses[i][d];
         }
 
-
-        for (int d = 0; d < PSO::swarmState.dimention; ++d) 
-            outfile << PSO::swarmState.swarmPoses[i][d] << ' '; 
-        outfile << '\n'; 
-
         double r_p = uniformAB(0.0, 1.0); 
         bool ok = true;
         for (int d = 0; d < PSO::swarmState.dimention; ++d) {
@@ -111,13 +106,11 @@ void PSO::makeStep(
     unsigned numOfIterations,
     std::ofstream& outfile
 ) {
-    // std::ofstream outfile("./_dump.txt");  
     while (PSO::swarmState.curNumIterations < numOfIterations)
         PSO::makeStep(targFunc, outfile);
     outfile.close();
 
     PSO::swarmState.globalBestVal = targFunc(PSO::swarmState.globalBestPos); 
-    // file.open(); 
     outfile << "bounds:\n"; 
     for (int d = 0; d < PSO::swarmState.dimention; ++d)
         outfile << "    " << PSO::swarmState.bounds[d].first << ' ' << PSO::swarmState.bounds[d].second << '\n'; 
@@ -152,7 +145,7 @@ void PSO::makeVTKsnapshot(
     vertexGlyphFilter->SetInputData(polygon);
     vertexGlyphFilter->Update();
 
-    std::string fileName = "./vtu_frames/frame-" + std::to_string(snapshotNum) + ".vtu";
+    std::string fileName = folderName + "/frame-" + std::to_string(snapshotNum) + ".vtu";
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(fileName.c_str());
     writer->SetInputData(vertexGlyphFilter->GetOutput());
@@ -215,53 +208,47 @@ void PSO::run_and_visualize(
     PSO::visualize(targFunc, numOfIterations); 
 }
 
-double mccormick(const std::vector<double> & x) {
-    auto a = x[0];
-    auto b = x[1];
-    return sin(a + b) + (a - b) * (a - b) + 1.0 + 2.5 * b - 1.5 * a;
-}
-
-double test1(const std::vector<double> & x) {
-    return x[1]*x[1] + std::sin(x[0]); 
-}
-
-double test(const std::vector<double> & x) {
-    auto a = x[0];
-    auto b = x[1];
-    return (a+2)*(a+2) + (b-2)*(b-2);
-}
-
-double michalewicz(const std::vector<double> & x) {
-    auto m = 10;
-    auto d = x.size();
-    auto sum = 0.0;
-    for (int i = 1; i < d; ++i) {
-        auto j = x[i - 1];
-        auto k = sin(i * j * j / std::acos(-1.0));
-        sum += sin(j) * pow(k, (2.0 * m));
+namespace  exampleFunctions {
+    double mccormick(const std::vector<double> & x) {
+        auto a = x[0];
+        auto b = x[1];
+        return sin(a + b) + (a - b) * (a - b) + 1.0 + 2.5 * b - 1.5 * a;
     }
-    return -sum;
+
+    double test1(const std::vector<double> & x) {
+        return x[1]*x[1] + std::sin(x[0]); 
+    }
+
+    double test(const std::vector<double> & x) {
+        auto a = x[0];
+        auto b = x[1];
+        return (a+2)*(a+2) + (b-2)*(b-2);
+    }
+
+    double michalewicz(const std::vector<double> & x) {
+        auto m = 10;
+        auto d = x.size();
+        auto sum = 0.0;
+        for (int i = 1; i < d; ++i) {
+            auto j = x[i - 1];
+            auto k = sin(i * j * j / std::acos(-1.0));
+            sum += sin(j) * pow(k, (2.0 * m));
+        }
+        return -sum;
+    }
 }
 
 int main(int argc, char* argv[]) {
-    const double PI = std::acos(-1.0); 
-
     std::ofstream outfile("./run/test.txt"); 
 
     PSO pso; 
-    // pso.init(
-    //     0.6, 0.1, 0.3,
-    //     {{-1.5, 4.0}, {-3.0, 4.0}},
-    //     3000
-    // );
-    // pso.run_and_visualize(mccormick, 50, outfile); 
-// 
+
     pso.init(
-        0.6, 0.5, 0.6,
+        0.3, 0.5, 0.6,
         {{-5, 5}, {-6, 6}},
-        1000
+        5000
     );
-    pso.run_and_visualize(test, 100, outfile); 
+    pso.run_and_visualize(exampleFunctions::michalewicz, 1000, outfile); 
 
     // pso.init(
     //     0.3, 0.7, 0.5,
