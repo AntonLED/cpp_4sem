@@ -1,17 +1,18 @@
 cmake_minimum_required(VERSION 3.20)
-project(microproject)
+project(swarmit)
 
 set(SOURCES
         ./src/Swarm.cpp
+        ./src/main.cpp
 )
 
 set(HEADERS
         ./src/Swarm.h
 )
 
-add_executable(microproject ${SOURCES} ${HEADERS})
+add_executable(swarmit ${SOURCES} ${HEADERS})
 
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
-target_link_libraries(microproject ${VTK_LIBRARIES})
+target_link_libraries(swarmit ${VTK_LIBRARIES})
