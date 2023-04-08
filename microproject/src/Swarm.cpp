@@ -1,4 +1,5 @@
 #include "Swarm.h"
+#include "example_functions.h"
 
 
 
@@ -28,75 +29,73 @@ void PSO::init(
     PSO::swarmState.dimention = dimensions; 
     // poss init 
     PSO::swarmState.swarmPoses.resize(swarmSize);
-    for (int i = 0; i < swarmSize; ++i) {
+    for (unsigned i = 0; i < swarmSize; ++i) {
         PSO::swarmState.swarmPoses[i].resize(dimensions); 
-        for (int d = 0; d < dimensions; ++d)
+        for (unsigned d = 0; d < dimensions; ++d)
             PSO::swarmState.swarmPoses[i][d] = uniformAB(bounds[d].first, bounds[d].second); 
     }
     // best_poss init
     PSO::swarmState.swarmBestPoses.resize(swarmSize);
-    for (int i = 0; i < swarmSize; ++i) {
+    for (unsigned i = 0; i < swarmSize; ++i) {
         PSO::swarmState.swarmBestPoses[i].resize(dimensions); 
-        for (int d = 0; d < dimensions; ++d)
+        for (unsigned d = 0; d < dimensions; ++d)
             PSO::swarmState.swarmBestPoses[i][d] = PSO::swarmState.swarmPoses[i][d]; 
     }
     // velsinit 
     PSO::swarmState.swarmVelos.resize(swarmSize);
-    for (int i = 0; i < swarmSize; ++i) {
+    for (unsigned i = 0; i < swarmSize; ++i) {
         PSO::swarmState.swarmVelos[i].resize(dimensions);
-        for (int d = 0; d < dimensions; ++d) 
+        for (unsigned d = 0; d < dimensions; ++d) 
             PSO::swarmState.swarmVelos[i][d] = uniformAB(
-                -1 * std::abs( bounds[d].first - bounds[d].second ),
-                1 * std::abs( bounds[d].first - bounds[d].second )
+                -1 * std::abs(bounds[d].first - bounds[d].second),
+                1 * std::abs(bounds[d].first - bounds[d].second)
             );
     }
     
     PSO::swarmState.bounds.resize(dimensions); 
-    for (int d = 0; d < dimensions; ++d) {
+    for (unsigned d = 0; d < dimensions; ++d) {
         PSO::swarmState.bounds[d].first = bounds[d].first;
         PSO::swarmState.bounds[d].second = bounds[d].second;
     }
     // swarm size init 
     PSO::swarmState.swarmSize = swarmSize; 
-
     PSO::swarmState.globalBestPos.resize(dimensions); 
-
     PSO::swarmState.swarmBestVals.resize(swarmSize); 
-
     PSO::swarmState.curNumIterations = 0; 
-
-    PSO::swarmState.globalBestVal =  HUGE_VAL;
+    PSO::swarmState.globalBestVal = HUGE_VAL;
 }
 
 void PSO::makeStep(
     const std::function<double(const std::vector<double>&)> &targFunc,
-    std::ofstream& outfile
+    std::string visualDirName
 ) {
     double r_g = uniformAB(0.0, 1.0);
 
-    for (int i = 0; i < PSO::swarmState.swarmSize; ++i) { 
+    for (unsigned i = 0; i < PSO::swarmState.swarmSize; ++i) { 
         if (targFunc(PSO::swarmState.swarmPoses[i]) < targFunc(PSO::swarmState.swarmBestPoses[i])) {
-            for (int d = 0; d < PSO::swarmState.dimention; ++d)
+            for (unsigned d = 0; d < PSO::swarmState.dimention; ++d)
                  PSO::swarmState.swarmBestPoses[i][d] = PSO::swarmState.swarmPoses[i][d]; 
             if (targFunc(PSO::swarmState.swarmBestPoses[i]) < targFunc(PSO::swarmState.globalBestPos)) 
-                for (int d = 0; d < PSO::swarmState.dimention; ++d)
+                for (unsigned d = 0; d < PSO::swarmState.dimention; ++d)
                     PSO::swarmState.globalBestPos[d] = PSO::swarmState.swarmBestPoses[i][d];
         }
 
         double r_p = uniformAB(0.0, 1.0); 
         bool ok = true;
-        for (int d = 0; d < PSO::swarmState.dimention; ++d) {
-            PSO::swarmState.swarmVelos[i][d] = PSO::swarmState.swarmParameters.w * PSO::swarmState.swarmVelos[i][d] +
+        for (unsigned d = 0; d < PSO::swarmState.dimention; ++d) {
+            PSO::swarmState.swarmVelos[i][d] = 
+                PSO::swarmState.swarmParameters.w * PSO::swarmState.swarmVelos[i][d] +
                 PSO::swarmState.swarmParameters.phi_p * r_p * (PSO::swarmState.swarmBestPoses[i][d] - PSO::swarmState.swarmPoses[i][d]) + 
                 PSO::swarmState.swarmParameters.phi_g * r_g * (PSO::swarmState.globalBestPos[d] - PSO::swarmState.swarmPoses[i][d]); 
             PSO::swarmState.swarmPoses[i][d] += PSO::swarmState.swarmVelos[i][d]; 
             ok = ok && PSO::swarmState.bounds[d].first < PSO::swarmState.swarmPoses[i][d] && PSO::swarmState.bounds[d].second > PSO::swarmState.swarmPoses[i][d];
         }
         if (!ok)
-            for (int d = 0; d < PSO::swarmState.dimention; ++d) 
+            for (unsigned d = 0; d < PSO::swarmState.dimention; ++d) 
                 PSO::swarmState.swarmPoses[i][d] = PSO::swarmState.bounds[d].first + (PSO::swarmState.bounds[d].second - PSO::swarmState.bounds[d].first) * uniformAB(0.0, 1.0); 
     }
-    PSO::makeVTKsnapshot(PSO::swarmState.curNumIterations, "./vtu_frames/");
+    if (!visualDirName.empty())
+        PSO::makeVTKsnapshot(PSO::swarmState.curNumIterations, visualDirName);
 
     PSO::swarmState.curNumIterations++; 
 }
@@ -104,20 +103,28 @@ void PSO::makeStep(
  void PSO::run(
     const std::function<double(const std::vector<double>&)> &targFunc,
     unsigned numOfIterations,
-    std::ofstream& outfile
+    std::string resultFilePath,
+    std::string visualDirName
 ) {
-    while (PSO::swarmState.curNumIterations < numOfIterations)
-        PSO::makeStep(targFunc, outfile);
-    outfile.close();
+    const std::filesystem::path resultPath = resultFilePath;
+    if (!std::filesystem::exists(resultPath)) 
+        std::filesystem::create_directories(resultPath.parent_path());
+    const std::filesystem::path visualPath = visualDirName + "/";
+    if (!std::filesystem::exists(visualPath))
+        std::filesystem::create_directories(visualPath.parent_path());
 
+    while (PSO::swarmState.curNumIterations < numOfIterations)
+        PSO::makeStep(targFunc, visualDirName);
+
+    std::ofstream outfile(resultFilePath); 
     PSO::swarmState.globalBestVal = targFunc(PSO::swarmState.globalBestPos); 
     outfile << "bounds:\n"; 
-    for (int d = 0; d < PSO::swarmState.dimention; ++d)
+    for (unsigned d = 0; d < PSO::swarmState.dimention; ++d)
         outfile << "    " << PSO::swarmState.bounds[d].first << ' ' << PSO::swarmState.bounds[d].second << '\n'; 
     outfile << "num of particles: " << std::to_string(PSO::swarmState.swarmSize) << '\n'; 
     outfile << "num of iterations: " << std::to_string(PSO::swarmState.curNumIterations) << '\n'; 
     outfile << "global minimum in ["; 
-    for (int d = 0; d < PSO::swarmState.dimention; ++d) 
+    for (unsigned d = 0; d < PSO::swarmState.dimention; ++d) 
         outfile << PSO::swarmState.globalBestPos[d] << ' ';
     outfile << "]\n";
     outfile << "MIN = "; 
@@ -127,7 +134,7 @@ void PSO::makeStep(
 
 void PSO::makeVTKsnapshot(
     unsigned snapshotNum,
-    std::string folderName
+    std::string visualDirName
 ) {
     auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
     auto polygon = vtkSmartPointer<vtkPolyData>::New();    
@@ -145,7 +152,7 @@ void PSO::makeVTKsnapshot(
     vertexGlyphFilter->SetInputData(polygon);
     vertexGlyphFilter->Update();
 
-    std::string fileName = folderName + "/frame-" + std::to_string(snapshotNum) + ".vtu";
+    std::string fileName = visualDirName + "/frame-" + std::to_string(snapshotNum) + ".vtu";
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(fileName.c_str());
     writer->SetInputData(vertexGlyphFilter->GetOutput());
@@ -154,12 +161,13 @@ void PSO::makeVTKsnapshot(
 
 void PSO::visualize(
     const std::function<double(const std::vector<double>&)> &targFunc,
-    unsigned numOfIterations
+    unsigned numOfIterations, 
+    std::string visualDirName
 ) {
     auto dumpPoints = vtkSmartPointer<vtkPoints>::New();
     auto polygon = vtkSmartPointer<vtkPolyData>::New(); 
     auto smth = vtkSmartPointer<vtkDoubleArray>::New();
-    smth->SetName("function");
+    smth->SetName("function_field");
 
     double stepX = (PSO::swarmState.bounds[0].second - PSO::swarmState.bounds[0].first) / 100; 
     double stepY = (PSO::swarmState.bounds[1].second - PSO::swarmState.bounds[1].first) / 100; 
@@ -172,27 +180,22 @@ void PSO::visualize(
             );
         }
     }
-
     polygon->SetPoints(dumpPoints);
 
     auto mesher = vtkSmartPointer<vtkDelaunay2D>::New(); 
     mesher->SetInputData(polygon); 
     mesher->Update();
     vtkPolyData* meshedPolygon = mesher->GetOutput();
-    
     for (unsigned i = 0; i < meshedPolygon->GetNumberOfPoints(); ++i) {
         double point[3]; 
-
         meshedPolygon->GetPoint(i, point);        
-
         smth->InsertNextValue(
             targFunc({point[0], point[1], point[2]})
         );
     }    
-
     meshedPolygon->GetPointData()->SetScalars(smth);
 
-    std::string fileName = "./background/backframe" + std::to_string(numOfIterations) + ".vtu";
+    std::string fileName = visualDirName + "/background.vtu";
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(fileName.c_str());
     writer->SetInputData(meshedPolygon);
@@ -202,70 +205,30 @@ void PSO::visualize(
 void PSO::run_and_visualize(
     const std::function<double(const std::vector<double>&)> &targFunc,
     unsigned numOfIterations,
-    std::ofstream& outfile
+    std::string resultFilePath,
+    std::string visualDirName
 ) {
-    PSO::run(targFunc, numOfIterations, outfile);
-    PSO::visualize(targFunc, numOfIterations); 
-}
-
-namespace  exampleFunctions {
-    double mccormick(const std::vector<double> & x) {
-        auto a = x[0];
-        auto b = x[1];
-        return sin(a + b) + (a - b) * (a - b) + 1.0 + 2.5 * b - 1.5 * a;
-    }
-
-    double test1(const std::vector<double> & x) {
-        return x[1]*x[1] + std::sin(x[0]); 
-    }
-
-    double test(const std::vector<double> & x) {
-        auto a = x[0];
-        auto b = x[1];
-        return (a+2)*(a+2) + (b-2)*(b-2);
-    }
-
-    double michalewicz(const std::vector<double> & x) {
-        auto m = 10;
-        auto d = x.size();
-        auto sum = 0.0;
-        for (int i = 1; i < d; ++i) {
-            auto j = x[i - 1];
-            auto k = sin(i * j * j / std::acos(-1.0));
-            sum += sin(j) * pow(k, (2.0 * m));
-        }
-        return -sum;
-    }
+    PSO::run(targFunc, numOfIterations, resultFilePath, visualDirName);
+    PSO::visualize(targFunc, numOfIterations, visualDirName); 
 }
 
 int main(int argc, char* argv[]) {
-    std::ofstream outfile("./run/test.txt"); 
-
     PSO pso; 
 
     pso.init(
-        0.3, 0.5, 0.6,
+        0.4, 0.5, 0.6,
         {{-5, 5}, {-6, 6}},
         5000
     );
-    pso.run_and_visualize(exampleFunctions::michalewicz, 1000, outfile); 
+    pso.run(exampleFunctions::mccormick, 100, "./run/mccromic.txt"); 
 
-    // pso.init(
-    //     0.3, 0.7, 0.5,
-    //     {{-PI, PI}, {-PI, PI}},
-    //     1000
-    // );
-    // // pso.run(test1, 40); 
-    // pso.run_and_visualize(test1, 40); 
+    pso.init(
+        0.4, 0.5, 0.6,
+        {{-5, 5}, {-6, 6}},
+        5000
+    );
+    pso.run(exampleFunctions::test, 50, "./run/test.txt"); 
 
-// //
-//     pso.init(
-//         0.7, 0.4, 0.6,
-//         {{0, std::acos(-1.0)}, {0, std::acos(-1.0)}},
-//         500
-//     );
-//     pso.run_and_visualize(michalewicz, 100); 
-//
     return 0; 
 }
 

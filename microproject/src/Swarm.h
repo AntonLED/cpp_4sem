@@ -1,27 +1,19 @@
+#pragma once
+
+// STD lib
 #include <algorithm>
 #include <functional>
 #include <random>
 #include <fstream>
 #include <vector>
-
-
+#include <filesystem>
+// VTK 
 #include <vtkDoubleArray.h>
 #include <vtkPoints.h>
 #include <vtkPointData.h>
 #include <vtkXMLPolyDataWriter.h>
 #include <vtkSmartPointer.h>
-
-#include <vtkActor.h>
-#include <vtkCellArray.h>
 #include <vtkDelaunay2D.h>
-#include <vtkMath.h>
-#include <vtkMinimalStandardRandomSequence.h>
-#include <vtkNamedColors.h>
-#include <vtkNew.h>
-#include <vtkPolyData.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkPolygon.h>
-#include <vtkProperty.h>
 #include <vtkVertexGlyphFilter.h>
 
 
@@ -44,12 +36,12 @@ private:
         unsigned dimention; 
     };
     void makeStep(
-        const std::function<double(const std::vector<double>&)> &targFunc,
-        std::ofstream &outfile
+        const std::function<double(const std::vector<double>&)>& targFunc,
+        std::string visualDirName = ""
     ); 
     void makeVTKsnapshot(
         unsigned snapshotNum, 
-        std::string folderName
+        std::string visualDirName
     );     
     
     pso_params swarmParams; 
@@ -66,18 +58,21 @@ public:
         unsigned swarmSize
     ); 
     void run(
-        const std::function<double(const std::vector<double>&)> &targFunc,
+        const std::function<double(const std::vector<double>&)>& targFunc,
         unsigned numOfIterations,
-        std::ofstream& outfile
+        std::string resultFilePath,
+        std::string visualDirName = ""
     ); 
     void run_and_visualize(
-        const std::function<double(const std::vector<double>&)> &targFunc,
+        const std::function<double(const std::vector<double>&)>& targFunc,
         unsigned numOfIterations,
-        std::ofstream& outfile
+        std::string resultFileName,
+        std::string visualDirName
     );
     void visualize(
-        const std::function<double(const std::vector<double>&)> &targFunc,
-        unsigned numOfIterations
+        const std::function<double(const std::vector<double>&)>& targFunc,
+        unsigned numOfIterations,
+        std::string visualDirName
     ); 
 }; 
 
